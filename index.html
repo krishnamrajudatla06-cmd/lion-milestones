@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Lion Milestones 2025</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#c76a3f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lion Milestones">
+
+<style>
+body{font-family:-apple-system,Segoe UI,Roboto;background:#fff8ef;color:#3b2b20;padding:20px}
+.container{max-width:1100px;margin:auto}
+h1{text-align:center}
+.track{position:relative;height:260px;margin:40px 0}
+.path{position:absolute;left:4%;right:4%;top:150px;height:12px;background:#e7d6c6;border-radius:12px}
+.segment{position:absolute;top:0;height:100%;background:#e7d6c6;border-radius:12px}
+.segment.complete{background:linear-gradient(90deg,#f3a36b,#d9534f)}
+.lionWrap{position:absolute;top:20px;left:4%;width:140px;transition:left .4s}
+.lion{width:100%}
+.goal{background:#fff;border-radius:8px;padding:10px;margin:8px}
+button{padding:10px 14px;border:none;border-radius:8px;background:#c76a3f;color:#fff;margin:6px}
+</style>
+</head>
+
+<body>
+<div class="container">
+<h1>2025 Lion Milestones</h1>
+<p>PWA-ready version. Use Safari → Add to Home Screen.</p>
+</div>
+
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js");
+}
+</script>
+</body>
+</html>
