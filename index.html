@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Lion Milestones 2025</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#c76a3f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lion Milestones">
+
+<style>
+body{font-family:-apple-system,Segoe UI,Roboto;background:#fff8ef;color:#3b2b20;padding:20px}
+.container{max-width:1100px;margin:auto}
+h1{text-align:center}
+
+.track{position:relative;height:260px;margin:30px 0}
+.path{position:absolute;left:4%;right:4%;top:150px;height:12px;background:#e7d6c6;border-radius:12px}
+.segment{position:absolute;top:0;height:100%;background:#e7d6c6;border-radius:12px}
+.segment.complete{background:linear-gradient(90deg,#f3a36b,#d9534f)}
+.paw{position:absolute;top:50%;transform:translateY(-50%);font-size:22px;opacity:0}
+.paw.show{opacity:1}
+
+.lionWrap{position:absolute;top:20px;left:4%;width:140px;transition:left .4s}
+.lion{width:100%}
+.crown{position:absolute;left:50%;top:-34px;transform:translateX(-50%);width:70px;display:none}
+.crown.show{display:block}
+
+.top,.settings{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.card{background:#fff;padding:10px 14px;border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,.06)}
+.goal{background:#fff;border-radius:14px;padding:12px;margin:12px 0;box-shadow:0 6px 14px rgba(0,0,0,.06)}
+.sub{margin-left:24px;color:#555}
+
+button{background:#c76a3f;color:#fff;border:none;border-radius:10px;padding:8px 14px;margin:4px}
+button.secondary{background:#8b5a41}
+input[type=text],input[type=date]{padding:6px;border-radius:8px;border:1px solid #ddd}
+
+.confetti{position:fixed;width:8px;height:8px;top:-10px;animation:fall 3s linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+
+.gantt{margin-top:30px}
+.bar{height:20px;background:linear-gradient(90deg,#f3a36b,#d9534f);border-radius:8px;margin:8px 0;padding-left:10px;color:#fff;display:flex;align-items:center}
+</style>
+</head>
+
+<body>
+<div class="container">
+<h1>🦁 2025 Lion Milestones</h1>
+
+<div class="top">
+ <div class="card"><strong>Progress:</strong> <span id="progress">0%</span></div>
+</div>
+
+<div class="settings">
+ <div class="card">
+  <strong>Replace Lion</strong><br>
+  <input type="file" id="lionUpload" accept="image/*"><br>
+  <button class="secondary" onclick="restoreLion()">Restore</button>
+ </div>
+ <div class="card">
+  <strong>Replace Crown</strong><br>
+  <input type="file" id="crownUpload" accept="image/*"><br>
+  <button class="secondary" onclick="restoreCrown()">Restore</button>
+ </div>
+ <div class="card">
+  <strong>Quick Actions</strong><br>
+  <button onclick="saveState()">Save</button>
+  <button class="secondary" onclick="clearState()">Clear</button>
+ </div>
+</div>
+
+<div class="track">
+ <div class="path" id="path"></div>
+ <div class="lionWrap" id="lionWrap">
+  <img id="lion" class="lion" src="lion.png">
+  <img id="crown" class="crown" src="crown.png">
+ </div>
+</div>
+
+<button onclick="addGoal()">➕ Add Goal</button>
+<button class="secondary" onclick="resetProgress()">Reset Progress</button>
+
+<div id="goals"></div>
+
+<!-- <h2>📊 Timeline</h2> -->
+<div class="gantt" id="gantt"></div>
+</div> 
+
+<script>
+let GOALS=[
+ {name:"Business Growth",start:"2025-01-01",target:"2025-03-31",subgoals:[
+  {name:"Revenue",start:"2025-01-01",target:"2025-01-31"},
+  {name:"Clients",start:"2025-02-01",target:"2025-02-28"}
+ ]}
+];
+
+const DEFAULT_LION="IMG_lion.png";
+const DEFAULT_CROWN="IMG_crown.jpeg";
+
+let completedGoals=new Set();
+let completedSubs=new Set();
+
+const path=document.getElementById("path");
+const lionWrap=document.getElementById("lionWrap");
+const lion=document.getElementById("lion");
+const crown=document.getElementById("crown");
+const progress=document.getElementById("progress");
+const goalsDiv=document.getElementById("goals");
+<!-- const gantt=document.getElementById("gantt");-->
+
+function pct(i){return 4+(92*(i/GOALS.length));}
+
+function rebuildPath(){
+ path.innerHTML="";
+ GOALS.forEach((_,i)=>{
+  let seg=document.createElement("div");
+  seg.className="segment";
+  seg.id="seg"+i;
+  seg.style.left=pct(i)+"%";
+  seg.style.width=(92/GOALS.length)+"%";
+  path.appendChild(seg);
+
+  let paw=document.createElement("div");
+  paw.className="paw";
+  paw.id="paw"+i;
+  paw.textContent="🐾";
+  paw.style.left=(pct(i)+(92/GOALS.length)/2)+"%";
+  path.appendChild(paw);
+ });
+}
+
+function render(){
+ goalsDiv.innerHTML="";
+ gantt.innerHTML="";
+ GOALS.forEach((g,gi)=>{
+  let div=document.createElement("div");
+  div.className="goal";
+  div.innerHTML=`
+   <input type="text" value="${g.name}" onchange="gName(${gi},this.value)"><br>
+   Start: <input type="date" value="${g.start}" onchange="gStart(${gi},this.value)">
+   Target: <input type="date" value="${g.target}" onchange="gTarget(${gi},this.value)">
+   <br><button onclick="addSub(${gi})">➕ Sub-goal</button>
+  `;
+  g.subgoals.forEach((s,si)=>{
+   div.innerHTML+=`
+    <div class="sub">
+     <input type="checkbox" onchange="toggleSub(${gi},${si})">
+     <input type="text" value="${s.name}" onchange="sName(${gi},${si},this.value)"><br>
+     Start: <input type="date" value="${s.start}" onchange="sStart(${gi},${si},this.value)">
+     Target: <input type="date" value="${s.target}" onchange="sTarget(${gi},${si},this.value)">
+    </div>`;
+  });
+  goalsDiv.appendChild(div);
+
+  let bar=document.createElement("div");
+  bar.className="bar";
+  bar.textContent=g.name;
+  gantt.appendChild(bar);
+ });
+ update();
+}
+
+function isGoalDone(i){
+ return GOALS[i].subgoals.length===0 ||
+  GOALS[i].subgoals.every((_,si)=>completedSubs.has(i+"-"+si));
+}
+
+function update(){
+ const done=[...completedGoals].length;
+ lionWrap.style.left=pct(done)+"%";
+ progress.textContent=Math.round((done/GOALS.length)*100)+"%";
+
+ GOALS.forEach((_,i)=>{
+  document.getElementById("seg"+i).classList.toggle("complete",completedGoals.has(i));
+  document.getElementById("paw"+i).classList.toggle("show",completedGoals.has(i));
+ });
+
+ if(done===GOALS.length && GOALS.length>0){
+  lion.style.display="none";
+  crown.classList.add("show");
+  confetti();
+ }else{
+  lion.style.display="block";
+  crown.classList.remove("show");
+ }
+}
+
+function toggleSub(g,s){
+ let k=g+"-"+s;
+ completedSubs.has(k)?completedSubs.delete(k):completedSubs.add(k);
+ isGoalDone(g)?completedGoals.add(g):completedGoals.delete(g);
+ update();
+}
+
+/* dynamic edits */
+function addGoal(){
+ GOALS.push({name:"New Goal",start:"",target:"",subgoals:[]});
+ rebuildPath();render();
+}
+function addSub(g){GOALS[g].subgoals.push({name:"New Sub",start:"",target:""});render();}
+function gName(i,v){GOALS[i].name=v}
+function gStart(i,v){GOALS[i].start=v}
+function gTarget(i,v){GOALS[i].target=v}
+function sName(g,s,v){GOALS[g].subgoals[s].name=v}
+function sStart(g,s,v){GOALS[g].subgoals[s].start=v}
+function sTarget(g,s,v){GOALS[g].subgoals[s].target=v}
+
+function resetProgress(){
+ completedGoals.clear();
+ completedSubs.clear();
+ update();
+}
+
+/* uploads */
+lionUpload.onchange=e=>{
+ const f=e.target.files[0]; if(!f)return;
+ const r=new FileReader();
+ r.onload=()=>{lion.src=r.result; saveState();};
+ r.readAsDataURL(f);
+};
+crownUpload.onchange=e=>{
+ const f=e.target.files[0]; if(!f)return;
+ const r=new FileReader();
+ r.onload=()=>{crown.src=r.result; saveState();};
+ r.readAsDataURL(f);
+};
+function restoreLion(){lion.src=DEFAULT_LION; saveState();}
+function restoreCrown(){crown.src=DEFAULT_CROWN; saveState();}
+
+/* persistence */
+function saveState(){
+ localStorage.setItem("lionPWA_DYNAMIC",JSON.stringify({
+  goals:GOALS,
+  cg:[...completedGoals],
+  cs:[...completedSubs],
+  lion:lion.src,
+  crown:crown.src
+ }));
+}
+function clearState(){
+ localStorage.removeItem("lionPWA_DYNAMIC");
+ location.reload();
+}
+(function load(){
+ const d=JSON.parse(localStorage.getItem("lionPWA_DYNAMIC")||"null");
+ if(!d)return;
+ GOALS=d.goals||GOALS;
+ completedGoals=new Set(d.cg||[]);
+ completedSubs=new Set(d.cs||[]);
+ if(d.lion) lion.src=d.lion;
+ if(d.crown) crown.src=d.crown;
+})();
+
+function confetti(){
+ for(let i=0;i<60;i++){
+  let c=document.createElement("div");
+  c.className="confetti";
+  c.style.left=Math.random()*100+"vw";
+  c.style.background=`hsl(${Math.random()*360},80%,60%)`;
+  document.body.appendChild(c);
+  setTimeout(()=>c.remove(),3500);
+ } 
+}
+
+rebuildPath();
+render();
+
+if("serviceWorker"in navigator){
+ navigator.serviceWorker.register("service-worker.js");
+}
+</script>
+</body>
+</html>
